@@ -2,7 +2,7 @@
 Python useful modules
 
 ## License
-MIT License. For more information, please refer to [LICENSE](LICENSE)
+Public Domain. For more information, please refer to http://unlicense.org
 
 ## Modules
 
