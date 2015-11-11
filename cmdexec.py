@@ -1,7 +1,6 @@
-#!/usr/bin/env python
-# cmdexec.py - Commands Execution Module
-#
-# Copyright (C) 2014 Sergey Sokolov, License MIT
+#!/usr/bin/env python3
+# cmdexec.py - Commands Execution Module by Sergey 2014
+# Pylib - Python useful modules (github.com/snsokolov/pylib)
 
 """
 Module to execute shell commands with the confirmation

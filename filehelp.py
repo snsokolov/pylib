@@ -1,7 +1,6 @@
-#!/usr/bin/env python
-# filehelp.py - File operations helping Module
-#
-# Copyright (C) 2014 Sergey Sokolov, License MIT
+#!/usr/bin/env python3
+# filehelp.py - File operations helping Module by Sergey 2014
+# Pylib - Python useful modules (github.com/snsokolov/pylib)
 
 """
 File helping functions Module

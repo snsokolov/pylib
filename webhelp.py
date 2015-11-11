@@ -1,7 +1,6 @@
-#!/usr/bin/env python
-# webhelp.py - Web functions helping Module
-#
-# Copyright (C) 2014 Sergey Sokolov, License MIT
+#!/usr/bin/env python3
+# webhelp.py - Web functions helping Module by Sergey 2014
+# Pylib - Python useful modules (github.com/snsokolov/pylib)
 
 """
 Accessing web helping functions module

@@ -1,7 +1,6 @@
-#!/usr/bin/env python
-# fastlist.py - Fast list implementation Module
-#
-# Copyright (C) 2015 Sergey Sokolov, License MIT
+#!/usr/bin/env python3
+# fastlist.py - Fast list implementation Module by Sergey 2015
+# Pylib - Python useful modules (github.com/snsokolov/pylib)
 
 """
 Fast list class implementation Module

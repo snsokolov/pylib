@@ -1,7 +1,6 @@
-#!/usr/bin/env python
-# tableprinter.py - Table printer Module
-#
-# Copyright (C) 2014 Sergey Sokolov, License MIT
+#!/usr/bin/env python3
+# tableprinter.py - Table printer Module by Sergey 2014
+# Pylib - Python useful modules (github.com/snsokolov/pylib)
 
 """
 Table Printer Class implementation Module
