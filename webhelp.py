@@ -70,7 +70,7 @@ def get_url_dir(url):
     return re.sub("[^/]*$", "", url)
 
 
-def download_file(url, prefix="", target_dir=""):
+def download_file(url, target_dir="", prefix=""):
     """ Download file from the url """
     filename = url.split("/")[-1]
     if prefix:
@@ -121,6 +121,21 @@ class unitTests(unittest.TestCase):
     def setUp(self):
         os.makedirs(self.test_area, exist_ok=True)
 
+    def test_download_file_success(self):
+        dwnl_file = self.test_area + "/prefix_logo11w.png"
+        download_file(
+            "http://www.google.com/images/srpr/logo11w.png",
+            self.test_area, "prefix_")
+        self.assertTrue(os.path.exists(dwnl_file))
+        os.remove(dwnl_file)
+
+    # TODO: Fix these unit tests.
+    def test_download_file_bad_address(self):
+        # File download
+        dwnl_file = self.test_area + "/prefix_"
+        download_file("http://www.google.com/images/srpr/l.png", self.test_area)
+        self.assertFalse(os.path.exists(dwnl_file))
+
     def test_webhelp_functions(self):
         """ Helping functions testing """
 
@@ -130,14 +145,6 @@ class unitTests(unittest.TestCase):
 
         # Get url dir
         self.assertEqual(get_url_dir("fdfd/fdf.ht"), "fdfd/")
-
-        # File download
-        dwnl_file = self.test_area + "/prefix_logo11w.png"
-        download_file(
-            "http://www.google.com/images/srpr/logo11w.png",
-            "prefix_", self.test_area)
-        self.assertTrue(os.path.exists(dwnl_file))
-        os.remove(dwnl_file)
 
         # Get linked img urls
         page_str = (
