@@ -9,6 +9,7 @@ Accessing web helping functions module
 
 # Standard modules
 import unittest
+import unittest.mock
 import sys
 import os
 import argparse
@@ -17,6 +18,7 @@ import random
 import subprocess
 import getpass
 import shutil
+import tempfile
 
 # Additional modules
 import urllib.request
@@ -58,7 +60,7 @@ class Webhelp(urllib.request.FancyURLopener, object):
 
 
 def get_page_str(url):
-    """ Return web page content using a custom version of URL opener """
+    """Return web page content using a custom version of URL opener."""
     page = Webhelp().open(url)
     page_str = str(page.read())
     page.close()
@@ -66,39 +68,88 @@ def get_page_str(url):
 
 
 def get_url_dir(url):
-    """ Return the url directory name """
+    """Return the url directory - url minus the text after last '/'."""
+    return re.sub("[^/]*$", "", url)
+
+def get_url_(url):
+    """Return the url directory name - url minus the text after last '/'."""
     return re.sub("[^/]*$", "", url)
 
 
 def download_file(url, target_dir="", prefix=""):
-    """ Download file from the url """
-    filename = url.split("/")[-1]
+    """Download file from the url."""
+    print("Downloading: ", url)
+    file_name = url.split("/")[-1]
     if prefix:
-        filename = prefix + filename
+        file = prefix + file_name
+    else:
+        file = file_name
     if target_dir:
-        filename = target_dir + "/" + filename
-    Webhelp().retrieve(url, filename)
+        # Create the target directory if not exists.
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir, exist_ok=True)
+        file = target_dir + "/" + file
+    try:
+        print(file)
+        Webhelp().retrieve(url, file)
+    except ValueError:
+        # Don't leave empty files
+        os.remove(file)
+        return 0
+    return 1
 
 
-def get_linked_img_urls(page_str, prefix=""):
-    """ Return urls of all linked images in the page string """
+def get_linked_img_urls(page_str, url_dir=""):
+    """Return urls of all linked images in the page string."""
     regexp = "<a [^>]*href=[\"]?(\S+\.jp[e]?g)[^>]*><img"
     urls = re.findall(regexp, page_str, re.I)
     for (i, url) in enumerate(urls):
-        if not re.match("http", url):
-            urls[i] = prefix + url
+        if not re.match("^http", url):
+            urls[i] = url_dir + url
     return urls
 
 
-def download_linked_imgs(url, prefix="", target_dir="", test=False):
-    """ Download all linked images from url provided """
+def download_linked_imgs(url, target_dir="", prefix=""):
+    """Download all linked images from url provided """
     page_str = get_page_str(url)
-    urls = get_linked_img_urls(page_str, prefix=get_url_dir(url))
-    if test:
-        return
+    urls = get_linked_img_urls(page_str, get_url_dir(url))
     for url in urls:
-        print("Downloading: ", url)
-        download_file(url, prefix, target_dir, test)
+        download_file(url, target_dir, prefix)
+    if not urls:
+        print("W: No linked imgs found.")
+
+
+def download_dir(dir_url, start, stop, target_dir="", prefix=""):
+    """Download files in the directory."""
+    for num in range(start, stop+1):
+        num_str = str(num)
+        # Padding
+        if num < 10:
+            num_str = "0" + num_str
+        file_url = dir_url + "/" + num_str + ".jpg"
+        status = download_file(file_url, target_dir, prefix)
+        if not status:
+            if num == start:
+                print("W: Can't download dir %s, breaking the loop" % dir_url)
+                return 0
+
+            print("W: Can't download %s, breaking the loop" % file_url)
+            break
+    return 1
+
+
+def download_dirs(dirs_url, target_dir, start, cnt=1, dir_start=0, dir_stop=200, ):
+    """Download directory of directories."""
+    for num in range(start, start+cnt):
+        num_str = str(num)
+        # Padding
+        if num < 10:
+            num = "0" + num_str
+        dir_url = dirs_url + "/" + num_str
+        status = download_dir(dir_url, dir_start, dir_stop, target_dir, num_str+"_")
+        if not status:
+            break
+
 
 
 ###############################################################################
@@ -108,63 +159,55 @@ def download_linked_imgs(url, prefix="", target_dir="", test=False):
 
 class unitTests(unittest.TestCase):
 
-    tmp_area = "/tmp/ut" + getpass.getuser()
-    test_area = tmp_area + "/t" + str(random.randrange(10000))
-    tmp_file = test_area + "/f" + str(random.randrange(10000))
+    IMG_URL = "http://www.google.com/images/srpr/logo11w.png"
 
-    def write_file(self, filename, file_str, append=0):
-        """ Write string into a file (will overwrite existing file) """
-        fh = open(filename, "a+" if append else "w", newline="\n")
-        fh.write(file_str + "\n")
-        fh.close()
+    def test_Webhelp_class_retrieve(self):
+        """Webhelp class URL retrieve."""
+        d = Webhelp()
+        (file, headers) = d.retrieve(self.IMG_URL)
+        self.assertGreater(os.path.getsize(file), 0)
+        os.remove(file)
 
-    def setUp(self):
-        os.makedirs(self.test_area, exist_ok=True)
-
-    def test_download_file_success(self):
-        dwnl_file = self.test_area + "/prefix_logo11w.png"
-        download_file(
-            "http://www.google.com/images/srpr/logo11w.png",
-            self.test_area, "prefix_")
-        self.assertTrue(os.path.exists(dwnl_file))
-        os.remove(dwnl_file)
-
-    # TODO: Fix these unit tests.
-    def test_download_file_bad_address(self):
-        # File download
-        dwnl_file = self.test_area + "/prefix_"
-        download_file("http://www.google.com/images/srpr/l.png", self.test_area)
-        self.assertFalse(os.path.exists(dwnl_file))
-
-    def test_webhelp_functions(self):
-        """ Helping functions testing """
-
-        # Get page string
-        self.write_file(self.tmp_file, "<html>")
-        self.assertEqual(get_page_str(self.tmp_file), "b'<html>\\n'")
-
-        # Get url dir
+    def test_get_url_dir(self):
         self.assertEqual(get_url_dir("fdfd/fdf.ht"), "fdfd/")
 
-        # Get linked img urls
+    def test_download_file(self):
+        """Download a file from url and add a prefix."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            download_file(self.IMG_URL, temp_dir, "prefix_")
+            self.assertTrue(os.path.exists(temp_dir + "/prefix_logo11w.png"))
+
+    def test_download_file_bad_address(self):
+        """Download a file from bad address"""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            download_file("http://www.google.com/images/srpr/l.png", temp_dir)
+            self.assertEqual(len(os.listdir(temp_dir)), 0)
+
+    def test_get_linked_urls(self):
+        """Detect linked urls."""
         page_str = (
             "<><a fd href=http:/d.jpg cvc><img fdg>" +
             "df<A href=\"f.jpeg\" ><img f>")
         self.assertEqual(
             get_linked_img_urls(page_str), ["http:/d.jpg", "f.jpeg"])
         self.assertEqual(
-            get_linked_img_urls(page_str, prefix="a/"),
+            get_linked_img_urls(page_str, url_dir="a/"),
             ["http:/d.jpg", "a/f.jpeg"])
 
-        self.write_file(self.tmp_file, page_str)
-        download_linked_imgs(self.tmp_file, test=True)
+    @unittest.mock.patch.object(Webhelp, 'open')
+    @unittest.mock.patch.object(Webhelp, 'retrieve')
+    def test_webhelp_functions(self, mock_retrieve, mock_open):
+        """Web Helping functions testing."""
+        with tempfile.TemporaryFile('r+') as temp_file:
+            temp_file.write("<><a fd href=1.jpg><img dd>")
+            temp_file.seek(0)
+            mock_open.return_value = temp_file
+            with tempfile.TemporaryDirectory() as temp_dir:
+                download_linked_imgs("http://one/too/g.html", temp_dir, "prf_")
+                mock_retrieve.assert_called_with("http://one/too/1.jpg",
+                                                 temp_dir+"/prf_1.jpg")
+                mock_open.assert_called_with("http://one/too/g.html")
 
-    def test_Webhelp_class__basic_functionality(self):
-        """ Webhelp class basic testing """
-        d = Webhelp()
-
-    def test_xcleanup(self):
-        shutil.rmtree(self.tmp_area)
 
 if __name__ == "__main__":
     if sys.argv[-1] == "-ut":
